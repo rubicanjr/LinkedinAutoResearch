@@ -1,0 +1,72 @@
+name: Daily LinkedIn Autopilot
+
+on:
+  schedule:
+    # 09:05 Europe/Istanbul (UTC+3) every day
+    - cron: "5 6 * * *"
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Optional topic override"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: linkedin-daily-autopilot
+  cancel-in-progress: false
+
+jobs:
+  run-daily:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: gpt-5.2-mini
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      NOTION_PARENT_PAGE_ID: ${{ secrets.NOTION_PARENT_PAGE_ID }}
+      NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+      APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+      APIFY_ACTOR_ID: ${{ secrets.APIFY_ACTOR_ID }}
+      TIMEZONE: Europe/Istanbul
+      OUTPUT_DIR: data
+      LEAD_MAGNET_SCHOOL_PATH: knowledge/lead_magnet_school.md
+      TOPIC_OVERRIDE: ${{ github.event.inputs.topic }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run daily generate + sync + research
+        shell: bash
+        run: |
+          if [ -n "$TOPIC_OVERRIDE" ]; then
+            python -m src.linkedin_leadmagnet.main daily-run --topic "$TOPIC_OVERRIDE" --apify-input apify_input.json
+          else
+            python -m src.linkedin_leadmagnet.main daily-run --apify-input apify_input.json
+          fi
+
+      - name: Commit daily artifacts
+        shell: bash
+        run: |
+          if [ -z "$(git status --porcelain data/)" ]; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git commit -m "chore: daily linkedin autopilot snapshot"
+          git push
