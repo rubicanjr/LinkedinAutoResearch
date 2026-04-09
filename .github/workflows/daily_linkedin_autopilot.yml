@@ -2,8 +2,8 @@ name: Daily Linkedin Pipeline
 
 on:
   schedule:
-    # 09:05 Europe/Istanbul (UTC+3) every day
-    - cron: "5 6 * * *"
+    # 21:00 Europe/Istanbul (UTC+3) every day
+    - cron: "0 18 * * *"
   workflow_dispatch:
     inputs:
       topic:
@@ -29,14 +29,8 @@ jobs:
       NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
       APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
       APIFY_ACTOR_ID: ${{ secrets.APIFY_ACTOR_ID }}
-      BLOTATO_API_KEY: ${{ secrets.BLOTATO_API_KEY }}
-      BLOTATO_PLATFORM: linkedin
-      BLOTATO_ACCOUNT_ID: ${{ secrets.BLOTATO_ACCOUNT_ID }}
-      BLOTATO_LINKEDIN_PAGE_ID: ${{ secrets.BLOTATO_LINKEDIN_PAGE_ID }}
-      NOTION_PAGE_URL_TEMPLATE: https://www.notion.so/{page_id_nodash}
-      VIDEO_OVERLAY_TEXT: Yorumlara CHECKLIST yaz, lead magneti gondereyim.
-      SCROLL_RECORD_SECONDS: 6.7
-      AUTO_PUBLISH_DEFAULT: "true"
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+      BUFFER_PROFILE_ID: ${{ secrets.BUFFER_PROFILE_ID }}
       TIMEZONE: Europe/Istanbul
       OUTPUT_DIR: data
       LEAD_MAGNET_SCHOOL_PATH: knowledge/lead_magnet_school.md
@@ -55,9 +49,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Install Chromium for Playwright
-        run: python -m playwright install --with-deps chromium
 
       - name: Run daily generate + sync + research
         shell: bash

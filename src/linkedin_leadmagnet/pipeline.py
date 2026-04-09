@@ -5,14 +5,13 @@ from pathlib import Path
 from typing import Any
 
 from .apify_client import ApifyClient, ApifyError
-from .blotato import BlotatoClient, BlotatoError
+from .buffer_client import BufferClient, BufferError
 from .config import Settings
 from .generator import LeadMagnetGenerator
 from .models import LeadMagnetDraft
 from .notion import NotionClient, NotionError
 from .research import build_research_insight, render_recommendation_markdown
 from .utils import dump_json, load_json
-from .video import VideoError, VideoRecorder, add_text_layer
 
 
 class PipelineError(RuntimeError):
@@ -25,8 +24,7 @@ class LinkedinLeadMagnetPipeline:
         self.generator = LeadMagnetGenerator(settings)
         self.notion = NotionClient(token=settings.notion_token) if settings.notion_token else None
         self.apify = ApifyClient(token=settings.apify_token) if settings.apify_token else None
-        self.blotato = BlotatoClient(api_key=settings.blotato_api_key) if settings.blotato_api_key else None
-        self.video_recorder = VideoRecorder()
+        self.buffer = BufferClient(api_key=settings.buffer_api_key) if settings.buffer_api_key else None
         self.settings.output_dir.mkdir(parents=True, exist_ok=True)
 
     def _research_hint_path(self) -> Path:
@@ -92,17 +90,15 @@ class LinkedinLeadMagnetPipeline:
         payload = load_json(draft_path)
         return LeadMagnetDraft.from_dict(payload)
 
-    def _build_overlay_text(self, draft: LeadMagnetDraft) -> str:
-        base = self.settings.video_overlay_text.strip()
-        if "{lead_magnet_title}" in base:
-            base = base.replace("{lead_magnet_title}", draft.lead_magnet_title)
-        if "{topic}" in base:
-            base = base.replace("{topic}", draft.topic)
-        return base
+    def _build_publish_text(self, draft: LeadMagnetDraft, notion_page_url: str) -> str:
+        text = draft.linkedin_post.strip()
+        if notion_page_url.strip() and notion_page_url not in text:
+            text = f"{text}\n\nLead magnet: {notion_page_url.strip()}"
+        return text
 
     def publish_by_experiment_id(self, experiment_id: str, notion_page_url_override: str = "") -> dict[str, Any]:
-        if not self.blotato:
-            raise PipelineError("Blotato client is not configured. Set BLOTATO_API_KEY.")
+        if not self.buffer:
+            raise PipelineError("Buffer client is not configured. Set BUFFER_API_KEY.")
 
         draft_path = self._find_draft_by_experiment_id(experiment_id.strip())
         draft = self._load_draft_from_file(draft_path)
@@ -124,50 +120,31 @@ class LinkedinLeadMagnetPipeline:
             )
 
         stamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        raw_video = self.settings.output_dir / "media" / f"{stamp}_{experiment_id}_raw.webm"
-        final_video = self.settings.output_dir / "media" / f"{stamp}_{experiment_id}_overlay.mp4"
 
         try:
-            captured_path = self.video_recorder.capture_scroll(
-                page_url=notion_page_url,
-                output_dir=raw_video.parent,
-                duration_seconds=self.settings.scroll_record_seconds,
+            profile_id = self.buffer.resolve_linkedin_profile_id(
+                preferred_profile_id=self.settings.buffer_profile_id,
             )
-            # Playwright writes with random names; move to deterministic path.
-            captured_path.replace(raw_video)
-            overlay_text = self._build_overlay_text(draft)
-            add_text_layer(raw_video, final_video, overlay_text)
-        except VideoError as exc:
-            raise PipelineError(str(exc)) from exc
-
-        try:
-            account_id = self.blotato.resolve_account_id(
-                preferred_account_id=self.settings.blotato_account_id,
-                platform=self.settings.blotato_platform,
+            publish_text = self._build_publish_text(draft, notion_page_url)
+            publish_result = self.buffer.create_update(
+                profile_id=profile_id,
+                text=publish_text,
+                post_now=True,
+                link=notion_page_url,
             )
-            media_url = self.blotato.upload_media(final_video)
-            submission_id = self.blotato.create_post(
-                account_id=account_id,
-                text=draft.linkedin_post,
-                media_urls=[media_url],
-                platform=self.settings.blotato_platform,
-                linkedin_page_id=self.settings.blotato_linkedin_page_id,
-            )
-            status = self.blotato.wait_until_published(submission_id)
-            post_url = self.blotato.extract_public_post_url(status)
-            if self.notion and page_id and post_url:
-                self.notion.update_post_url(page_id=page_id, post_url=post_url, status="Published")
-        except (BlotatoError, NotionError) as exc:
+            update_id = ""
+            updates = publish_result.get("updates")
+            if isinstance(updates, list) and updates:
+                update_id = str(updates[0].get("id", "")).strip()
+        except BufferError as exc:
             raise PipelineError(str(exc)) from exc
 
         result = {
             "experiment_id": experiment_id,
             "draft_path": str(draft_path),
             "notion_page_url": notion_page_url,
-            "video_raw_path": str(raw_video),
-            "video_final_path": str(final_video),
-            "blotato_submission_id": submission_id,
-            "published_post_url": post_url,
+            "buffer_profile_id": profile_id,
+            "buffer_update_id": update_id,
         }
         dump_json(self.settings.output_dir / "runs" / f"{stamp}_{experiment_id}_publish.json", result)
         return result

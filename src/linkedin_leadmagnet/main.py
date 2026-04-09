@@ -28,7 +28,7 @@ def _parser() -> argparse.ArgumentParser:
     p_attach.add_argument("--experiment-id", required=True, help="Experiment ID from generate command output")
     p_attach.add_argument("--post-url", required=True, help="Published LinkedIn post URL")
 
-    p_publish = sub.add_parser("publish", help="Capture Notion page video, add text layer, publish via Blotato")
+    p_publish = sub.add_parser("publish", help="Publish generated content to LinkedIn via Buffer")
     p_publish.add_argument("--experiment-id", required=True, help="Experiment ID from generate command output")
     p_publish.add_argument("--notion-page-url", required=False, default="", help="Optional override for Notion page URL")
 
@@ -38,7 +38,7 @@ def _parser() -> argparse.ArgumentParser:
     p_daily.add_argument("--topic", required=False, default="", help="Topic for daily run")
     p_daily.add_argument("--publish-date", required=False, default="", help="YYYY-MM-DD")
     p_daily.add_argument("--apify-input", required=False, default="apify_input.json", help="Path to actor input JSON")
-    p_daily.add_argument("--auto-publish", action="store_true", help="Publish generated content via Blotato")
+    p_daily.add_argument("--auto-publish", action="store_true", help="Publish generated content via Buffer")
     return parser
 
 

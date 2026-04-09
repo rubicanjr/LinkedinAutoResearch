@@ -52,6 +52,8 @@ class Settings:
     output_dir: Path
     lead_magnet_school_path: Path
     notion_page_url_template: str
+    buffer_api_key: str
+    buffer_profile_id: str
     blotato_api_key: str
     blotato_platform: str
     blotato_account_id: str
@@ -84,6 +86,8 @@ def load_settings(env_file: str = ".env") -> Settings:
         output_dir=output_dir,
         lead_magnet_school_path=school_path,
         notion_page_url_template=os.getenv("NOTION_PAGE_URL_TEMPLATE", "https://www.notion.so/{page_id_nodash}").strip(),
+        buffer_api_key=os.getenv("BUFFER_API_KEY", "").strip(),
+        buffer_profile_id=os.getenv("BUFFER_PROFILE_ID", "").strip(),
         blotato_api_key=os.getenv("BLOTATO_API_KEY", "").strip(),
         blotato_platform=os.getenv("BLOTATO_PLATFORM", "linkedin").strip() or "linkedin",
         blotato_account_id=os.getenv("BLOTATO_ACCOUNT_ID", "").strip(),
