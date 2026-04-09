@@ -69,7 +69,7 @@ def load_settings(env_file: str = ".env") -> Settings:
 
     return Settings(
         gemini_api_key=os.getenv("GEMINI_API_KEY", "").strip(),
-        gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip(),
+        gemini_model=os.getenv("GEMINI_MODEL", "gemini-3-pro").strip(),
         notion_token=os.getenv("NOTION_TOKEN", "").strip(),
         notion_parent_page_id=os.getenv("NOTION_PARENT_PAGE_ID", "").strip(),
         notion_database_id=os.getenv("NOTION_DATABASE_ID", "").strip(),
