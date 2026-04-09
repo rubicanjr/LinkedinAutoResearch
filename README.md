@@ -4,6 +4,9 @@ This project runs a daily LinkedIn content improvement loop:
 
 - generate a lead magnet + post
 - store drafts and metrics in Notion
+- capture a 6-7 second scrolling screen recording of the Notion lead magnet page
+- add an automated text layer on top of the video
+- publish automatically via Blotato
 - pull daily performance from Apify
 - run a Karpathy-style ratchet analysis to improve future prompts
 
@@ -26,6 +29,8 @@ This project runs a daily LinkedIn content improvement loop:
 |  |- generator.py
 |  |- notion.py
 |  |- apify_client.py
+|  |- blotato.py
+|  |- video.py
 |  |- research.py
 |  `- pipeline.py
 |- .github/workflows/daily_linkedin_autopilot.yml
@@ -46,6 +51,12 @@ copy .env.example .env
 
 Fill `.env` with your credentials.
 
+Install Playwright browser once for local runs:
+
+```bash
+python -m playwright install chromium
+```
+
 ## 4) Notion database bootstrap
 
 Share your parent Notion page with your integration first.
@@ -64,7 +75,13 @@ Generate:
 python -m src.linkedin_leadmagnet.main generate --topic "B2B SaaS onboarding checklist"
 ```
 
-Attach published post URL:
+Publish automatically (capture Notion scroll video + text layer + Blotato post):
+
+```bash
+python -m src.linkedin_leadmagnet.main publish --experiment-id 2026-04-09-c4031533
+```
+
+Attach published post URL manually (only if needed):
 
 ```bash
 python -m src.linkedin_leadmagnet.main attach-post-url --experiment-id 2026-04-09-c4031533 --post-url "https://www.linkedin.com/feed/update/urn:li:activity:0000000000000000000/"
@@ -88,6 +105,18 @@ Full daily run:
 python -m src.linkedin_leadmagnet.main daily-run --topic "Financial reporting automation for SMB CFOs" --apify-input apify_input.json
 ```
 
+Full daily run with auto-publish:
+
+```bash
+python -m src.linkedin_leadmagnet.main daily-run --topic "Financial reporting automation for SMB CFOs" --apify-input apify_input.json --auto-publish
+```
+
+Important for video capture:
+
+1. The Notion page must be publicly reachable by URL.
+2. `NOTION_PAGE_URL_TEMPLATE` is used to build the capture URL from Notion page id.
+3. Default is `https://www.notion.so/{page_id_nodash}`.
+
 ## 6) GitHub Actions daily automation
 
 Daily workflow file:
@@ -101,8 +130,10 @@ Schedule:
 Workflow behavior:
 
 1. Install dependencies.
-2. Run `daily-run`.
-3. Commit changed files under `data/` back to the repository.
+2. Install Playwright Chromium.
+3. Run `daily-run --auto-publish`.
+4. Generate Notion page scroll video, add text layer, publish via Blotato.
+5. Commit changed files under `data/` back to the repository.
 
 Required GitHub repository secrets:
 
@@ -110,8 +141,14 @@ Required GitHub repository secrets:
 - `NOTION_TOKEN`
 - `NOTION_PARENT_PAGE_ID`
 - `NOTION_DATABASE_ID`
+- `BLOTATO_API_KEY`
 - `APIFY_TOKEN`
 - `APIFY_ACTOR_ID`
+
+Optional GitHub repository secrets:
+
+- `BLOTATO_ACCOUNT_ID`
+- `BLOTATO_LINKEDIN_PAGE_ID`
 
 Optional manual run topic input:
 

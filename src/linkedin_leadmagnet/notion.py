@@ -64,6 +64,7 @@ class NotionClient:
                 "Hook": {"rich_text": {}},
                 "LinkedIn Post": {"rich_text": {}},
                 "Lead Magnet Body": {"rich_text": {}},
+                "Lead Magnet Page URL": {"url": {}},
                 "Post URL": {"url": {}},
                 "Impressions": {"number": {"format": "number"}},
                 "Reactions": {"number": {"format": "number"}},
@@ -80,7 +81,7 @@ class NotionClient:
         db = self._request("POST", "/databases", payload)
         return str(db["id"])
 
-    def create_draft_page(self, database_id: str, draft: LeadMagnetDraft) -> str:
+    def create_draft_page(self, database_id: str, draft: LeadMagnetDraft) -> tuple[str, str]:
         if not database_id:
             raise NotionError("NOTION_DATABASE_ID is missing.")
 
@@ -99,6 +100,7 @@ class NotionClient:
                 "Hook": {"rich_text": self._rich_text(draft.hook)},
                 "LinkedIn Post": {"rich_text": self._rich_text(draft.linkedin_post)},
                 "Lead Magnet Body": {"rich_text": self._rich_text(body)},
+                "Lead Magnet Page URL": {"url": None},
                 "Post URL": {"url": draft.post_url or None},
                 "Impressions": {"number": 0},
                 "Reactions": {"number": 0},
@@ -112,8 +114,67 @@ class NotionClient:
                 "Notes": {"rich_text": self._rich_text(draft.notes)},
             },
         }
-        page = self._request("POST", "/pages", payload)
-        return str(page["id"])
+        try:
+            page = self._request("POST", "/pages", payload)
+        except NotionError as exc:
+            if "Lead Magnet Page URL" not in str(exc):
+                raise
+            payload["properties"].pop("Lead Magnet Page URL", None)
+            page = self._request("POST", "/pages", payload)
+        return str(page["id"]), str(page.get("url", ""))
+
+    @staticmethod
+    def _block_text(value: str) -> dict[str, Any]:
+        return {"type": "text", "text": {"content": value[:1900]}}
+
+    def append_lead_magnet_blocks(self, page_id: str, draft: LeadMagnetDraft) -> None:
+        blocks: list[dict[str, Any]] = [
+            {"object": "block", "type": "heading_1", "heading_1": {"rich_text": [self._block_text(draft.lead_magnet_title)]}},
+            {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [self._block_text(draft.lead_magnet_summary)]}},
+            {"object": "block", "type": "heading_2", "heading_2": {"rich_text": [self._block_text("Lead Magnet Outline")]}},
+        ]
+
+        for item in draft.lead_magnet_outline:
+            text = item.strip()
+            if not text:
+                continue
+            blocks.append(
+                {
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                    "bulleted_list_item": {"rich_text": [self._block_text(text)]},
+                }
+            )
+
+        blocks.extend(
+            [
+                {"object": "block", "type": "heading_2", "heading_2": {"rich_text": [self._block_text("LinkedIn Post Draft")]}},
+                {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [self._block_text(draft.linkedin_post)]}},
+                {"object": "block", "type": "heading_2", "heading_2": {"rich_text": [self._block_text("CTA")]}},
+                {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [self._block_text(draft.cta)]}},
+            ]
+        )
+
+        self._request("PATCH", f"/blocks/{page_id}/children", {"children": blocks})
+
+    def update_lead_magnet_page_url(self, page_id: str, lead_magnet_page_url: str) -> None:
+        payload = {
+            "properties": {
+                "Lead Magnet Page URL": {"url": lead_magnet_page_url},
+            }
+        }
+        try:
+            self._request("PATCH", f"/pages/{page_id}", payload)
+        except NotionError as exc:
+            if "Lead Magnet Page URL" not in str(exc):
+                raise
+
+    @staticmethod
+    def build_page_url(page_id: str, template: str) -> str:
+        if not page_id:
+            return ""
+        page_id_nodash = page_id.replace("-", "")
+        return template.replace("{page_id}", page_id).replace("{page_id_nodash}", page_id_nodash)
 
     def query_recent_pages(self, database_id: str, days: int) -> list[dict[str, Any]]:
         if not database_id:
@@ -186,9 +247,11 @@ class NotionClient:
     def page_to_record(self, page: dict[str, Any]) -> dict[str, Any]:
         props = page.get("properties", {})
         post_url = props.get("Post URL", {}).get("url") or ""
+        lead_magnet_page_url = props.get("Lead Magnet Page URL", {}).get("url") or ""
         publish_date = props.get("Publish Date", {}).get("date", {}).get("start", "")
         return {
             "page_id": str(page.get("id", "")),
+            "notion_url": str(page.get("url", "")),
             "headline": self._read_title(props.get("Name", {})),
             "topic": self._read_rich_text(props.get("Topic", {})),
             "hook": self._read_rich_text(props.get("Hook", {})),
@@ -196,6 +259,7 @@ class NotionClient:
             "variant_tag": self._read_rich_text(props.get("Variant Tag", {})),
             "experiment_id": self._read_rich_text(props.get("Experiment ID", {})),
             "post_url": post_url,
+            "lead_magnet_page_url": lead_magnet_page_url,
             "publish_date": publish_date,
             "impressions": self._read_number(props.get("Impressions", {})),
             "reactions": self._read_number(props.get("Reactions", {})),

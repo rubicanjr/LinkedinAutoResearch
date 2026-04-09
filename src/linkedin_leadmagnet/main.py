@@ -28,12 +28,17 @@ def _parser() -> argparse.ArgumentParser:
     p_attach.add_argument("--experiment-id", required=True, help="Experiment ID from generate command output")
     p_attach.add_argument("--post-url", required=True, help="Published LinkedIn post URL")
 
+    p_publish = sub.add_parser("publish", help="Capture Notion page video, add text layer, publish via Blotato")
+    p_publish.add_argument("--experiment-id", required=True, help="Experiment ID from generate command output")
+    p_publish.add_argument("--notion-page-url", required=False, default="", help="Optional override for Notion page URL")
+
     sub.add_parser("research", help="Run ratchet research analysis")
 
     p_daily = sub.add_parser("daily-run", help="Run generate + sync-metrics + research")
     p_daily.add_argument("--topic", required=False, default="", help="Topic for daily run")
     p_daily.add_argument("--publish-date", required=False, default="", help="YYYY-MM-DD")
     p_daily.add_argument("--apify-input", required=False, default="apify_input.json", help="Path to actor input JSON")
+    p_daily.add_argument("--auto-publish", action="store_true", help="Publish generated content via Blotato")
     return parser
 
 
@@ -77,6 +82,14 @@ def main() -> None:
             print(json.dumps(result, indent=2, ensure_ascii=False))
             return
 
+        if args.command == "publish":
+            result = pipeline.publish_by_experiment_id(
+                experiment_id=args.experiment_id,
+                notion_page_url_override=args.notion_page_url,
+            )
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return
+
         if args.command == "research":
             result = pipeline.run_research()
             print(json.dumps(result, indent=2, ensure_ascii=False))
@@ -89,6 +102,7 @@ def main() -> None:
                 topic=topic,
                 publish_date=publish_date,
                 apify_input_path=Path(args.apify_input),
+                auto_publish=bool(args.auto_publish),
             )
             print(json.dumps(result, indent=2, ensure_ascii=False))
             return

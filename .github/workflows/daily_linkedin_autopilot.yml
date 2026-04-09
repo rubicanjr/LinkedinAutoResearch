@@ -29,6 +29,14 @@ jobs:
       NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
       APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
       APIFY_ACTOR_ID: ${{ secrets.APIFY_ACTOR_ID }}
+      BLOTATO_API_KEY: ${{ secrets.BLOTATO_API_KEY }}
+      BLOTATO_PLATFORM: linkedin
+      BLOTATO_ACCOUNT_ID: ${{ secrets.BLOTATO_ACCOUNT_ID }}
+      BLOTATO_LINKEDIN_PAGE_ID: ${{ secrets.BLOTATO_LINKEDIN_PAGE_ID }}
+      NOTION_PAGE_URL_TEMPLATE: https://www.notion.so/{page_id_nodash}
+      VIDEO_OVERLAY_TEXT: Yorumlara CHECKLIST yaz, lead magneti gondereyim.
+      SCROLL_RECORD_SECONDS: 6.7
+      AUTO_PUBLISH_DEFAULT: "true"
       TIMEZONE: Europe/Istanbul
       OUTPUT_DIR: data
       LEAD_MAGNET_SCHOOL_PATH: knowledge/lead_magnet_school.md
@@ -48,13 +56,16 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Install Chromium for Playwright
+        run: python -m playwright install --with-deps chromium
+
       - name: Run daily generate + sync + research
         shell: bash
         run: |
           if [ -n "$TOPIC_OVERRIDE" ]; then
-            python -m src.linkedin_leadmagnet.main daily-run --topic "$TOPIC_OVERRIDE" --apify-input apify_input.json
+            python -m src.linkedin_leadmagnet.main daily-run --topic "$TOPIC_OVERRIDE" --apify-input apify_input.json --auto-publish
           else
-            python -m src.linkedin_leadmagnet.main daily-run --apify-input apify_input.json
+            python -m src.linkedin_leadmagnet.main daily-run --apify-input apify_input.json --auto-publish
           fi
 
       - name: Commit daily artifacts

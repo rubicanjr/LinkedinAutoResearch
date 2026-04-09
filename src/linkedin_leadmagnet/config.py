@@ -17,6 +17,23 @@ def _read_int(name: str, default: int) -> int:
         return default
 
 
+def _read_float(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
+def _read_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True)
 class Settings:
     gemini_api_key: str
@@ -30,6 +47,14 @@ class Settings:
     research_history_days: int
     output_dir: Path
     lead_magnet_school_path: Path
+    notion_page_url_template: str
+    blotato_api_key: str
+    blotato_platform: str
+    blotato_account_id: str
+    blotato_linkedin_page_id: str
+    video_overlay_text: str
+    scroll_record_seconds: float
+    auto_publish_default: bool
 
 
 def load_settings(env_file: str = ".env") -> Settings:
@@ -50,4 +75,12 @@ def load_settings(env_file: str = ".env") -> Settings:
         research_history_days=_read_int("RESEARCH_HISTORY_DAYS", 30),
         output_dir=output_dir,
         lead_magnet_school_path=school_path,
+        notion_page_url_template=os.getenv("NOTION_PAGE_URL_TEMPLATE", "https://www.notion.so/{page_id_nodash}").strip(),
+        blotato_api_key=os.getenv("BLOTATO_API_KEY", "").strip(),
+        blotato_platform=os.getenv("BLOTATO_PLATFORM", "linkedin").strip() or "linkedin",
+        blotato_account_id=os.getenv("BLOTATO_ACCOUNT_ID", "").strip(),
+        blotato_linkedin_page_id=os.getenv("BLOTATO_LINKEDIN_PAGE_ID", "").strip(),
+        video_overlay_text=os.getenv("VIDEO_OVERLAY_TEXT", "Yorumlara CHECKLIST yaz, hemen gondereyim.").strip(),
+        scroll_record_seconds=_read_float("SCROLL_RECORD_SECONDS", 6.7),
+        auto_publish_default=_read_bool("AUTO_PUBLISH_DEFAULT", False),
     )
