@@ -1,4 +1,4 @@
-name: Daily LinkedIn Autopilot
+name: Daily Linkedin Pipeline
 
 on:
   schedule:

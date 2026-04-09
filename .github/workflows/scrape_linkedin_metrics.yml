@@ -1,0 +1,61 @@
+name: Scrape Linkedin Metrics
+
+on:
+  schedule:
+    # 09:25 Europe/Istanbul (UTC+3) every day
+    - cron: "25 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: linkedin-scrape-metrics
+  cancel-in-progress: false
+
+jobs:
+  scrape-metrics:
+    runs-on: ubuntu-latest
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+      APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+      APIFY_ACTOR_ID: ${{ secrets.APIFY_ACTOR_ID }}
+      APIFY_RUN_TIMEOUT_SECONDS: 280
+      APIFY_DATASET_LIMIT: 100
+      APIFY_DATASET_CLEAN: "true"
+      APIFY_DATASET_FORMAT: json
+      TIMEZONE: Europe/Istanbul
+      OUTPUT_DIR: data
+      LEAD_MAGNET_SCHOOL_PATH: knowledge/lead_magnet_school.md
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run metrics sync
+        run: python -m src.linkedin_leadmagnet.main sync-metrics --apify-input apify_input.json
+
+      - name: Commit metrics artifacts
+        shell: bash
+        run: |
+          if [ -z "$(git status --porcelain data/)" ]; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git commit -m "chore: scrape linkedin metrics snapshot"
+          git push

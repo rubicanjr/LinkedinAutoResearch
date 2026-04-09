@@ -126,9 +126,11 @@ Important for video capture:
 
 ## 6) GitHub Actions daily automation
 
-Daily workflow file:
+Workflow files:
 
-- `.github/workflows/daily_linkedin_autopilot.yml`
+- `.github/workflows/daily_linkedin_autopilot.yml` (`Daily Linkedin Pipeline`)
+- `.github/workflows/scrape_linkedin_metrics.yml` (`Scrape Linkedin Metrics`)
+- `.github/workflows/autoresearch_strategy_update.yml` (`Autoresearch Strategy Update`)
 
 Schedule:
 
