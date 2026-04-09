@@ -19,8 +19,8 @@ def _read_int(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class Settings:
-    openai_api_key: str
-    openai_model: str
+    gemini_api_key: str
+    gemini_model: str
     notion_token: str
     notion_parent_page_id: str
     notion_database_id: str
@@ -39,8 +39,8 @@ def load_settings(env_file: str = ".env") -> Settings:
     school_path = Path(os.getenv("LEAD_MAGNET_SCHOOL_PATH", "knowledge/lead_magnet_school.md")).resolve()
 
     return Settings(
-        openai_api_key=os.getenv("OPENAI_API_KEY", "").strip(),
-        openai_model=os.getenv("OPENAI_MODEL", "gpt-5.2-mini").strip(),
+        gemini_api_key=os.getenv("GEMINI_API_KEY", "").strip(),
+        gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip(),
         notion_token=os.getenv("NOTION_TOKEN", "").strip(),
         notion_parent_page_id=os.getenv("NOTION_PARENT_PAGE_ID", "").strip(),
         notion_database_id=os.getenv("NOTION_DATABASE_ID", "").strip(),

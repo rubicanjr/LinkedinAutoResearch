@@ -7,7 +7,7 @@ from typing import Any
 from uuid import uuid4
 
 from .config import Settings
-from .llm import LLMError, OpenAIChatClient
+from .llm import GeminiClient, LLMError
 from .models import LeadMagnetDraft
 
 
@@ -19,9 +19,9 @@ def _sanitize_variant(value: str) -> str:
 class LeadMagnetGenerator:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = OpenAIChatClient(
-            api_key=settings.openai_api_key,
-            model=settings.openai_model,
+        self.client = GeminiClient(
+            api_key=settings.gemini_api_key,
+            model=settings.gemini_model,
         )
 
     def _school_context(self) -> str:
@@ -114,7 +114,7 @@ class LeadMagnetGenerator:
         )
 
     def generate(self, topic: str, publish_date: str, research_hint: str = "") -> LeadMagnetDraft:
-        if not self.settings.openai_api_key:
+        if not self.settings.gemini_api_key:
             return self._fallback_draft(topic, publish_date, research_hint)
 
         system_prompt, user_prompt = self._build_prompt(topic, publish_date, research_hint)

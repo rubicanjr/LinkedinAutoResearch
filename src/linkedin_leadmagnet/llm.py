@@ -12,30 +12,29 @@ class LLMError(RuntimeError):
 
 
 @dataclass
-class OpenAIChatClient:
+class GeminiClient:
     api_key: str
     model: str
     timeout_seconds: int = 60
-    base_url: str = "https://api.openai.com/v1/chat/completions"
+    base_url: str = "https://generativelanguage.googleapis.com/v1beta"
 
     def generate_json(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         if not self.api_key:
-            raise LLMError("OPENAI_API_KEY is missing.")
+            raise LLMError("GEMINI_API_KEY is missing.")
 
         payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            "temperature": 0.7,
-            "response_format": {"type": "json_object"},
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "contents": [{"parts": [{"text": user_prompt}]}],
+            "generationConfig": {
+                "temperature": 0.7,
+                "responseMimeType": "application/json",
+            },
         }
 
         resp = requests.post(
-            self.base_url,
+            f"{self.base_url}/models/{self.model}:generateContent",
             headers={
-                "Authorization": f"Bearer {self.api_key}",
+                "x-goog-api-key": self.api_key,
                 "Content-Type": "application/json",
             },
             json=payload,
@@ -47,7 +46,7 @@ class OpenAIChatClient:
 
         data = resp.json()
         try:
-            content = data["choices"][0]["message"]["content"]
+            content = data["candidates"][0]["content"]["parts"][0]["text"]
             return json.loads(content)
         except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
             raise LLMError(f"Failed to parse JSON response: {exc}") from exc

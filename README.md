@@ -106,7 +106,7 @@ Workflow behavior:
 
 Required GitHub repository secrets:
 
-- `OPENAI_API_KEY`
+- `GEMINI_API_KEY`
 - `NOTION_TOKEN`
 - `NOTION_PARENT_PAGE_ID`
 - `NOTION_DATABASE_ID`
