@@ -43,6 +43,10 @@ class Settings:
     notion_database_id: str
     apify_token: str
     apify_actor_id: str
+    apify_run_timeout_seconds: int
+    apify_dataset_limit: int
+    apify_dataset_clean: bool
+    apify_dataset_format: str
     timezone: str
     research_history_days: int
     output_dir: Path
@@ -71,6 +75,10 @@ def load_settings(env_file: str = ".env") -> Settings:
         notion_database_id=os.getenv("NOTION_DATABASE_ID", "").strip(),
         apify_token=os.getenv("APIFY_TOKEN", "").strip(),
         apify_actor_id=os.getenv("APIFY_ACTOR_ID", "").strip(),
+        apify_run_timeout_seconds=_read_int("APIFY_RUN_TIMEOUT_SECONDS", 280),
+        apify_dataset_limit=_read_int("APIFY_DATASET_LIMIT", 100),
+        apify_dataset_clean=_read_bool("APIFY_DATASET_CLEAN", True),
+        apify_dataset_format=os.getenv("APIFY_DATASET_FORMAT", "json").strip() or "json",
         timezone=os.getenv("TIMEZONE", "Europe/Istanbul").strip(),
         research_history_days=_read_int("RESEARCH_HISTORY_DAYS", 30),
         output_dir=output_dir,

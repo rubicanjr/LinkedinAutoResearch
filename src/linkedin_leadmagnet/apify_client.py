@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import requests
 
@@ -47,14 +47,38 @@ class ApifyClient:
     token: str
     base_url: str = "https://api.apify.com/v2"
 
-    def run_actor_sync_items(self, actor_id: str, actor_input: dict[str, Any]) -> list[dict[str, Any]]:
+    def run_actor_sync_items(
+        self,
+        actor_id: str,
+        actor_input: dict[str, Any],
+        query_options: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         if not self.token:
             raise ApifyError("APIFY_TOKEN is missing.")
         if not actor_id:
             raise ApifyError("APIFY_ACTOR_ID is missing.")
-        query = urlencode({"token": self.token})
-        url = f"{self.base_url}/acts/{actor_id}/run-sync-get-dataset-items?{query}"
-        resp = requests.post(url, json=actor_input, timeout=180)
+
+        params: dict[str, Any] = {"token": self.token}
+        if query_options:
+            for key, value in query_options.items():
+                if value is None:
+                    continue
+                if isinstance(value, str) and not value.strip():
+                    continue
+                params[key] = value
+
+        encoded_actor_id = quote(actor_id, safe="~")
+        query = urlencode(params, doseq=True)
+        url = f"{self.base_url}/acts/{encoded_actor_id}/run-sync-get-dataset-items?{query}"
+
+        timeout_seconds = int(params.get("timeout", 280))
+        request_timeout = max(120, timeout_seconds + 30)
+        resp = requests.post(url, json=actor_input, timeout=request_timeout)
+        if resp.status_code == 408:
+            raise ApifyError(
+                "Apify run-sync endpoint timed out (HTTP 408). "
+                "Lower the `timeout`/`limit` values or switch to async run endpoint."
+            )
         if not resp.ok:
             raise ApifyError(f"Apify API error {resp.status_code}: {resp.text}")
         payload = resp.json()

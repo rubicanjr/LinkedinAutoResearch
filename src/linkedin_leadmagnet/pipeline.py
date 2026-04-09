@@ -183,8 +183,18 @@ class LinkedinLeadMagnetPipeline:
             raise PipelineError(f"Apify input file not found: {apify_input_path}")
 
         actor_input = load_json(apify_input_path)
+        apify_query_options = {
+            "timeout": self.settings.apify_run_timeout_seconds,
+            "format": self.settings.apify_dataset_format,
+            "clean": int(self.settings.apify_dataset_clean),
+            "limit": self.settings.apify_dataset_limit,
+        }
         try:
-            raw_items = self.apify.run_actor_sync_items(self.settings.apify_actor_id, actor_input)
+            raw_items = self.apify.run_actor_sync_items(
+                self.settings.apify_actor_id,
+                actor_input,
+                query_options=apify_query_options,
+            )
         except ApifyError as exc:
             raise PipelineError(str(exc)) from exc
 

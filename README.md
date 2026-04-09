@@ -93,6 +93,13 @@ Sync metrics:
 python -m src.linkedin_leadmagnet.main sync-metrics --apify-input apify_input.json
 ```
 
+Apify run-sync behavior is configured via env:
+
+- `APIFY_RUN_TIMEOUT_SECONDS` (default `280`)
+- `APIFY_DATASET_LIMIT` (default `100`)
+- `APIFY_DATASET_CLEAN` (`true/false`)
+- `APIFY_DATASET_FORMAT` (default `json`)
+
 Run research:
 
 ```bash
