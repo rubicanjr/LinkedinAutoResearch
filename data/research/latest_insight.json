@@ -1,0 +1,13 @@
+{
+  "generated_at": "2026-04-10T08:11:35Z",
+  "analyzed_records": 12,
+  "winning_patterns": [
+    "Top magnet type: Checklist (avg score 0.0)",
+    "Winning hooks are concrete and outcome-led."
+  ],
+  "losing_patterns": [
+    "Weak magnet type: Checklist (avg score 0.0)",
+    "Underperforming hooks are vague and non-specific."
+  ],
+  "next_prompt_instructions": "Generate 2 concrete variants focused on measurable outcomes, use one clear CTA, and prioritize the top lead magnet type from winning patterns. Avoid generic motivational language."
+}
