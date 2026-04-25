@@ -1,7 +1,7 @@
 # Daily LinkedIn Research Recommendation
 
-- Generated at: `2026-04-24T08:53:15Z`
-- Records analyzed: `27`
+- Generated at: `2026-04-25T07:54:55Z`
+- Records analyzed: `28`
 
 ## Winning patterns
 - Top magnet type: Checklist (avg score 0.0)
